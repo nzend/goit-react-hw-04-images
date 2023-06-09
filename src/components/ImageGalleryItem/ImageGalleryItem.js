@@ -4,12 +4,12 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 
 const ImageGalleryItem = ({ item }) => {
-  const [isModalShow, setIsModalShow] = useState();
+  const [isModalShow, setIsModalShow] = useState(false);
  
   const onModal = () => {
     setIsModalShow(isModalShow => (isModalShow = !isModalShow));
   };
-  console.log(item);
+  
   return (
     <li className={css.gallery__item}>
       <img
@@ -18,7 +18,12 @@ const ImageGalleryItem = ({ item }) => {
         src={item.webformatURL}
         alt="img"
       />
-      {isModalShow && <Modal onClose={onModal} image={item} />}
+     
+      {isModalShow && (
+        <Modal onCloseModal={onModal}>
+          <img src={item.largeImageURL} alt="" />
+        </Modal>
+      )}
     </li>
   );
 };

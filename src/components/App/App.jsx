@@ -5,60 +5,69 @@ import css from './App.module.css';
 import fetchImages from '../../fetchCards';
 import Searchbar from '../Searchbar/Searchbar';
 import Loader from '../Loader/Loader';
-import fetchCards from '../../fetchCards';
 
 const App = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [items, setItems] = useState([]);
-  const [showModal, setShowModal] = useState(false);
-  const [status, setStatus] = useState('idle');
-  // const [total, setTotalHits] = useState(0);
-
-  // console.log(searchQuery);
-  // console.log(items);
-  // const response = fetchImages(searchQuery, page);
-  // console.log(response);
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const getImages = async () => {
       try {
         const response = await fetchImages(searchQuery, page);
-        
-        setItems(prevImages => [...prevImages, ...response]);
+        if (response.length === 0) {
+          return setError(`No results were found for ${searchQuery}!`);
+        }
+
+        setItems(prevItems => [...prevItems, ...response]);
       } catch (error) {
-        console.log(error);
+        setError('Something went wrong. Try again.');
+      } finally {
+        setIsLoading(false);
       }
     };
-    getImages()
-    console.log(getImages());
+    getImages();
   }, [searchQuery, page]);
-  
 
   const handleSubmit = newQuery => {
-    setSearchQuery(newQuery);
+    if (newQuery.trim() === '') {
+      alert('Порожній запит');
+      return;
+    } else if (newQuery === searchQuery) {
+      alert('Введіть новий запит');
+      return;
+    }
 
-    setItems([]);
     setPage(1);
-    // setStatus('pending');
+    setSearchQuery(newQuery);
+    setItems([]);
+    setError(null);
+    setIsLoading(true);
   };
 
   const onNextPage = () => {
-    setStatus('pending');
+    setIsLoading(true);
     setPage(prevPage => prevPage + 1);
   };
 
   return (
-    <div>
+    <div className={css.app}>
       <Searchbar onSubmit={handleSubmit} />
-
-      {items.length > 0 && <ImageGallery items={items} />}
-
-      <Button onNextPage={onNextPage} />
-
-      {/* {showModal && (
-        <Modal onToggleModal={toggleModal} largeImageURL={largeImageURL} />
-      )} */}
+      {error && <div className={css.error__notification}>{error}</div>}
+      {items.length !== 0 && searchQuery !== '' && (
+        <>
+          <ImageGallery items={items} />
+          {isLoading && <Loader />}
+          {items.length >= 12 ? (
+            <Button onNextPage={onNextPage} />
+          ) : (
+            <div className={css.error__notification}>Картинки закінчилися</div>
+          )}
+        </>
+      )}
+      {isLoading && <Loader />}
     </div>
   );
 };
