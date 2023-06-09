@@ -1,102 +1,65 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import Button from '../Button/Button';
 import ImageGallery from '../ImageGallery/ImageGallery';
 import css from './App.module.css';
 import fetchImages from '../../fetchCards';
 import Searchbar from '../Searchbar/Searchbar';
 import Loader from '../Loader/Loader';
+import fetchCards from '../../fetchCards';
 
-let page = 1;
+const App = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [items, setItems] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [status, setStatus] = useState('idle');
+  // const [total, setTotalHits] = useState(0);
 
-class App extends Component {
-  state = {
-    searchQuery: '',
-    items: [],
+  // console.log(searchQuery);
+  // console.log(items);
+  // const response = fetchImages(searchQuery, page);
+  // console.log(response);
 
-    status: 'idle',
-    totalHits: 0,
-  };
-
-  handleSubmit = async searchQuery => {
-    page = 1;
-    if (searchQuery.trim() === '') {
-      alert('You cannot search by empty field, try again.');
-      return;
-    } else {
+  useEffect(() => {
+    const getImages = async () => {
       try {
-        this.setState({ status: 'pending' });
-        const { totalHits, hits } = await fetchImages(searchQuery, page);
-        if (hits.length < 1) {
-          this.setState({ status: 'idle' });
-          alert(
-            'Sorry, there are no images matching your search query. Please try again.'
-          );
-          this.setState({ status: 'rejected' });
-        } else {
-          this.setState({
-            items: hits,
-            searchQuery,
-            totalHits: totalHits,
-            status: 'resolved',
-          });
-        }
+        const response = await fetchImages(searchQuery, page);
+        
+        setItems(prevImages => [...prevImages, ...response]);
       } catch (error) {
-        this.setState({ status: 'rejected' });
+        console.log(error);
       }
-    }
-  };
-  onNextPage = async () => {
-    this.setState({ status: 'pending' });
+    };
+    getImages()
+    console.log(getImages());
+  }, [searchQuery, page]);
+  
 
-    try {
-      const { hits } = await fetchImages(this.state.searchQuery, (page += 1));
-      this.setState(prevState => ({
-        items: [...prevState.items, ...hits],
-        status: 'resolved',
-      }));
-    } catch (error) {
-      this.setState({ status: 'rejected' });
-    }
-  };
-  render() {
-    const { totalHits, status, items } = this.state;
-    if (status === 'idle') {
-      return (
-        <div className={css.app}>
-          <Searchbar onSubmit={this.handleSubmit} />
-        </div>
-      );
-    }
-    if (status === 'pending') {
-      return (
-        <div className={css.app}>
-          <Searchbar onSubmit={this.handleSubmit} />
-          <ImageGallery page={page} items={this.state.items} />
-          <Loader />
-          {totalHits > 12 && <Button onClick={this.onNextPage} />}
-        </div>
-      );
-    }
-    if (status === 'rejected') {
-      return (
-        <div className={css.app}>
-          <Searchbar onSubmit={this.handleSubmit} />
+  const handleSubmit = newQuery => {
+    setSearchQuery(newQuery);
 
-          <div className={css.error__notification}>Something wrong, try later</div>
-        </div>
-      );
-    }
-    if (status === 'resolved') {
-      return (
-        <div className={css.app}>
-          <Searchbar onSubmit={this.handleSubmit} />
-          <ImageGallery page={page} items={this.state.items} />
-          {totalHits > 12 && totalHits > items.length && (
-            <Button onClick={this.onNextPage} />
-          )}
-        </div>
-      );
-    }
-  }
-}
+    setItems([]);
+    setPage(1);
+    // setStatus('pending');
+  };
+
+  const onNextPage = () => {
+    setStatus('pending');
+    setPage(prevPage => prevPage + 1);
+  };
+
+  return (
+    <div>
+      <Searchbar onSubmit={handleSubmit} />
+
+      {items.length > 0 && <ImageGallery items={items} />}
+
+      <Button onNextPage={onNextPage} />
+
+      {/* {showModal && (
+        <Modal onToggleModal={toggleModal} largeImageURL={largeImageURL} />
+      )} */}
+    </div>
+  );
+};
 export default App;
